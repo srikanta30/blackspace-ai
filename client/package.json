@@ -1,0 +1,26 @@
+{
+  "name": "blackspace",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "14.2.3",
+    "react": "^18",
+    "react-dom": "^18"
+  },
+  "devDependencies": {
+    "@tailwindcss/typography": "^0.5.13",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.3",
+    "eslint-plugin-tailwindcss": "^3.15.1",
+    "postcss": "^8",
+    "tailwind-merge": "^2.3.0",
+    "tailwindcss": "^3.4.1",
+    "tailwindcss-animate": "^1.0.7"
+  }
+}
