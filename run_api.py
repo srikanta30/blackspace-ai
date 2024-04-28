@@ -81,12 +81,13 @@ async def chat_with_sales_agent(chat_id, session_id: str = Body(None), human_say
       new_session = supabase_client.table("sessions").insert(new_session_payload).execute()
       session_id = new_session.data[0]["id"]
 
-    conversations = supabase_client.table("conversations").select("*").eq("session_id", session_id).execute()
+
+    conversations = supabase_client.table("conversations").select("*").eq("session_id", session_id).limit(20).execute()
 
     conversations_history = []
 
     for conversation in conversations.data:
-        conversations_history.append(conversation.text)
+        conversations_history.append(conversation["text"])
 
     sales_api = BlackSpaceAPI(
             config_path=user["config"],
@@ -124,7 +125,7 @@ async def chat_with_sales_agent(chat_id, session_id: str = Body(None), human_say
 
     if stream:
         async def stream_response():
-            stream_gen = sales_api.do_stream(conversations.data, human_say + extracted_text)
+            stream_gen = sales_api.do_stream(conversations_history, human_say + extracted_text)
             async for message in stream_gen:
                 data = {"token": message}
                 yield json.dumps(data).encode("utf-8") + b"\n"
@@ -132,7 +133,19 @@ async def chat_with_sales_agent(chat_id, session_id: str = Body(None), human_say
         return StreamingResponse(stream_response())
     else:
         response = await sales_api.do(human_say + extracted_text)
+
+        new_ai_conversation_payload = {
+        "session_id": session_id,
+        "text": response["reply"],
+        "type": "ai",
+        "created_at": datetime.now().isoformat(),
+        "updated_at": datetime.now().isoformat()
+        }
+
+        supabase_client.table("conversations").insert(new_ai_conversation_payload).execute()
+
         response["session_id"] = session_id
+
         return response
 
 supabase_url = os.getenv("SUPABASE_URL")
