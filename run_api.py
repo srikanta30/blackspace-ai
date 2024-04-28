@@ -6,7 +6,7 @@ from io import BytesIO
 
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import FastAPI, Query, UploadFile, File
+from fastapi import FastAPI, Query, UploadFile, File, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -78,15 +78,14 @@ async def get_bot_name(authorization: str = Header(...)):
 
 
 @app.post("/chat")
-async def chat_with_sales_agent(req: MessageList, stream: bool = Query(False), authorization: str = Header(...), file: UploadFile = File(...)):
+async def chat_with_sales_agent(session_id: str = Body(...), human_say: str = Body(...), conversation_history: List[str] = Body(...), stream: bool = Query(False), authorization: str = Header(...), file: UploadFile = File(...)):
     sales_api = None
     get_auth_key(authorization)
-    # print(f"Received request: {req}")
-    if req.session_id in sessions:
+    if session_id in sessions:
         print("Session is found!")
-        sales_api = sessions[req.session_id]
+        sales_api = sessions[session_id]
         print(f"Are tools activated: {sales_api.sales_agent.use_tools}")
-        print(f"Session id: {req.session_id}")
+        print(f"Session id: {session_id}")
     else:
         print("Creating new session")
         sales_api = BlackSpaceAPI(
@@ -100,7 +99,7 @@ async def chat_with_sales_agent(req: MessageList, stream: bool = Query(False), a
             in ["true", "1", "t"],
         )
         print(f"TOOLS?: {sales_api.sales_agent.use_tools}")
-        sessions[req.session_id] = sales_api
+        sessions[session_id] = sales_api
 
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
@@ -118,14 +117,14 @@ async def chat_with_sales_agent(req: MessageList, stream: bool = Query(False), a
     if stream:
 
         async def stream_response():
-            stream_gen = sales_api.do_stream(req.conversation_history, req.human_say + extracted_text)
+            stream_gen = sales_api.do_stream(conversation_history, human_say + extracted_text)
             async for message in stream_gen:
                 data = {"token": message}
                 yield json.dumps(data).encode("utf-8") + b"\n"
 
         return StreamingResponse(stream_response())
     else:
-        response = await sales_api.do(req.human_say + extracted_text)
+        response = await sales_api.do(human_say + extracted_text)
         return response
 
 
