@@ -15,7 +15,6 @@ const Main = () => {
   } = useContext(Context);
 
   const [isListening, setIsListening] = useState(false);
-  const [transcript, setTranscript] = useState('');
 
   useEffect(() => {
     let recognition;
@@ -23,7 +22,7 @@ const Main = () => {
     const handleResult = (event) => {
       const current = event.resultIndex;
       const transcript = event.results[current][0].transcript;
-      setTranscript(transcript);
+      setInput(transcript);
     };
 
     const handleError = (error) => {
@@ -45,6 +44,7 @@ const Main = () => {
         recognition.stop();
       }
     };
+
   }, [isListening]);
 
   const toggleListening = () => {
@@ -54,7 +54,7 @@ const Main = () => {
   return (
     <div className="main">
       <div className="nav">ƒˇ
-        <p>Gemini</p>
+        <p>blackspace.ai</p>
         <img src={assets.user_icon} alt="" />
       </div>
       <div className="main-container">
@@ -62,26 +62,18 @@ const Main = () => {
           <>
             <div className="greet">
               <p>
-                <span>Hello, Vishal.</span>
+                <span>Hello 👋.</span>
               </p>
               <p>How can I help you today?</p>
             </div>
             <div className="cards">
               <div className="card">
-                <p>Suggest beautiful places to see on an upcoming road trip</p>
+                <p>Ask any doubts or questions you have about our products.</p>
                 <img src={assets.compass_icon} alt="" />
               </div>
               <div className="card">
-                <p>Suggest beautiful places to see on an upcoming road trip</p>
+                <p>Upload your documents and get free consulation from our AI bot.</p>
                 <img src={assets.bulb_icon} alt="" />
-              </div>
-              <div className="card">
-                <p>Suggest beautiful places to see on an upcoming road trip</p>
-                <img src={assets.message_icon} alt="" />
-              </div>
-              <div className="card">
-                <p>Suggest beautiful places to see on an upcoming road trip</p>
-                <img src={assets.code_icon} alt="" />
               </div>
             </div>
           </>
@@ -110,7 +102,7 @@ const Main = () => {
           <div className="search-box">
             <input
               onChange={(e) => setInput(e.target.value)}
-              value={input || transcript}
+              value={input}
               type="text"
               placeholder="Enter a promt here"
             />
@@ -127,8 +119,8 @@ const Main = () => {
             </div>
           </div>
           <p className="bottom-info">
-            Gemini may display inaccurate info, including about people, so
-            double-check its responses.Your privacy and gemini apps
+            blackspace.ai may display inaccurate info, including about people, so
+            double-check its responses.Your privacy and blackspace.aiVishal apps
           </p>
         </div>
       </div>
