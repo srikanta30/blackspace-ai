@@ -78,7 +78,7 @@ async def get_bot_name(authorization: str = Header(...)):
 
 
 @app.post("/chat")
-async def chat_with_sales_agent(session_id: str = Body(...), human_say: str = Body(...), conversation_history: List[str] = Body(...), stream: bool = Query(False), authorization: str = Header(...), file: UploadFile = File(...)):
+async def chat_with_sales_agent(session_id: str = Body(...), human_say: str = Body(...), conversation_history: List[str] = Body(...), stream: bool = Query(False), authorization: str = Header(...), file: UploadFile = File(None)):
     sales_api = None
     get_auth_key(authorization)
     if session_id in sessions:
@@ -101,13 +101,14 @@ async def chat_with_sales_agent(session_id: str = Body(...), human_say: str = Bo
         print(f"TOOLS?: {sales_api.sales_agent.use_tools}")
         sessions[session_id] = sales_api
 
-    if not file.filename.endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+    if file is not None:
+        if not file.filename.endswith(".pdf"):
+            raise HTTPException(status_code=400, detail="Only PDF files are allowed")
 
-    file_content = await file.read()
+        file_content = await file.read()
 
-    pdf_reader = PyPDF2.PdfFileReader(BytesIO(file_content))
-    num_pages = pdf_reader.numPages
+        pdf_reader = PyPDF2.PdfFileReader(BytesIO(file_content))
+        num_pages = pdf_reader.numPages
     extracted_text = ""
 
     for page_num in range(num_pages):
