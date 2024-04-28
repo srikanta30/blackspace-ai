@@ -12,9 +12,6 @@ def setup_knowledge_base(
     We assume that the product catalog is simply a text string.
     """
 
-    with open(product_catalog, "r") as f:
-        product_catalog = f.read()
-
     text_splitter = CharacterTextSplitter(chunk_size=10, chunk_overlap=0)
     texts = text_splitter.split_text(product_catalog)
 

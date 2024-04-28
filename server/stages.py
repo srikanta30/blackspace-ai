@@ -1,6 +1,3 @@
-# Example conversation stages for the Sales Agent
-# Feel free to modify, add/drop stages based on the use case.
-
 CONVERSATION_STAGES = {
     "1": "Introduction: Start the conversation by introducing yourself and your company. Be polite and respectful while keeping the tone of the conversation professional. Your greeting should be welcoming. Always clarify in your greeting the reason why you are calling.",
     "2": "Qualification: Qualify the prospect by confirming if they are the right person to talk to regarding your product/service. Ensure that they have the authority to make purchasing decisions.",

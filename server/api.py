@@ -2,42 +2,33 @@ import asyncio
 import json
 import re
 
-from langchain_community.chat_models import BedrockChat, ChatLiteLLM
+from langchain_community.chat_models import ChatLiteLLM
 from langchain_openai import ChatOpenAI
 
 from server.agents import BlackSpaceAI
-
 
 class BlackSpaceAPI:
     def __init__(
         self,
         config_path: str,
         verbose: bool = True,
-        max_num_turns: int = 20,
         model_name: str = "gpt-3.5-turbo",
         product_catalog: str = "",
         use_tools=True,
+        conversation_history = []
     ):
         self.config_path = config_path
         self.verbose = verbose
-        self.max_num_turns = max_num_turns
         self.model_name = model_name
         self.llm = ChatLiteLLM(temperature=0.2, model=model_name)
         self.product_catalog = product_catalog
-        self.conversation_history = []
+        self.conversation_history = conversation_history
         self.use_tools = use_tools
         self.sales_agent = self.initialize_agent()
-        self.current_turn = 0
 
     def initialize_agent(self):
         config = {"verbose": self.verbose}
-        if self.config_path:
-            with open(self.config_path, "r") as f:
-                config.update(json.load(f))
-            if self.verbose:
-                print(f"Loaded agent config: {config}")
-        else:
-            print("Default agent config in use")
+        config.update(self.config_path)
 
         if self.use_tools:
             print("USING TOOLS")
@@ -45,9 +36,9 @@ class BlackSpaceAPI:
                 {
                     "use_tools": True,
                     "product_catalog": self.product_catalog,
-                    "salesperson_name": "Ted Lasso"
+                    "salesperson_name": "Sidhant Goswami"
                     if not self.config_path
-                    else config.get("salesperson_name", "Ted Lasso"),
+                    else config.get("salesperson_name", "Sidhant Goswami"),
                 }
             )
 
@@ -58,14 +49,6 @@ class BlackSpaceAPI:
         return sales_agent
 
     async def do(self, human_input=None):
-        self.current_turn += 1
-        current_turns = self.current_turn
-        if current_turns >= self.max_num_turns:
-            print("Maximum number of turns reached - ending the conversation.")
-            return [
-                "BOT",
-                "In case you'll have any questions - just text me one more time!",
-            ]
 
         if human_input is not None:
             self.sales_agent.human_step(human_input)
@@ -81,7 +64,7 @@ class BlackSpaceAPI:
             and "<END_OF_CALL>" in self.sales_agent.conversation_history[-1]
         ):
             print("Sales Agent determined it is time to end the conversation.")
-            # strip end of call for now
+
             self.sales_agent.conversation_history[
                 -1
             ] = self.sales_agent.conversation_history[-1].replace("<END_OF_CALL>", "")
@@ -127,6 +110,7 @@ class BlackSpaceAPI:
             tool, tool_input, action, action_input, action_output = "", "", "", "", ""
 
         print(reply)
+
         payload = {
             "bot_name": reply.split(": ")[0],
             "response": ": ".join(reply.split(": ")[1:]).rstrip("<END_OF_TURN>"),
@@ -136,18 +120,11 @@ class BlackSpaceAPI:
             "action_output": action_output,
             "action_input": action_input,
             "model_name": self.model_name,
+            "reply" : ": ".join(reply.split(": ")[1:])
         }
         return payload
 
     async def do_stream(self, conversation_history: [str], human_input=None):
-        current_turns = len(conversation_history) + 1
-        if current_turns >= self.max_num_turns:
-            print("Maximum number of turns reached - ending the conversation.")
-            yield [
-                "BOT",
-                "In case you'll have any questions - just text me one more time!",
-            ]
-            raise StopAsyncIteration
 
         self.sales_agent.seed_agent()
         self.sales_agent.conversation_history = conversation_history

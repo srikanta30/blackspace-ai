@@ -8,7 +8,6 @@ from server.prompts import (
     STAGE_ANALYZER_INCEPTION_PROMPT,
 )
 
-
 class StageAnalyzerChain(LLMChain):
     """Chain to analyze which conversation stage should the conversation move into."""
 
@@ -39,7 +38,7 @@ class SalesConversationChain(LLMChain):
         llm: ChatLiteLLM,
         verbose: bool = True,
         use_custom_prompt: bool = False,
-        custom_prompt: str = "You are an AI Sales agent, sell me this pencil",
+        custom_prompt: str = "You are an AI Sales agent.",
     ) -> LLMChain:
         """Get the response parser."""
         if use_custom_prompt:

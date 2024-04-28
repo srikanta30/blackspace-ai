@@ -2,7 +2,6 @@ from typing import Callable
 
 from langchain.prompts.base import StringPromptTemplate
 
-
 class CustomPromptTemplateForTools(StringPromptTemplate):
     # The template to use
     template: str

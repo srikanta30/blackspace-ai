@@ -5,9 +5,8 @@ from langchain.agents.agent import AgentOutputParser
 from langchain.agents.conversational.prompt import FORMAT_INSTRUCTIONS
 from langchain.schema import AgentAction, AgentFinish  # OutputParserException
 
-
 class SalesConvoOutputParser(AgentOutputParser):
-    ai_prefix: str = "AI"  # change for salesperson_name
+    ai_prefix: str = "AI"
     verbose: bool = False
 
     def get_format_instructions(self) -> str:

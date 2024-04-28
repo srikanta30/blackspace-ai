@@ -6,10 +6,12 @@ from io import BytesIO
 
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import FastAPI, Query, UploadFile, File, Body
+from fastapi import FastAPI, Query, UploadFile, File, Body, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from datetime import datetime
+from supabase import create_client
 
 import PyPDF2
 
@@ -40,13 +42,14 @@ from fastapi import Header, HTTPException, Depends
 class AuthenticatedResponse(BaseModel):
     message: str
 
-def get_auth_key(authorization: str = Header(...)) -> None:
-    auth_key = os.getenv("AUTH_KEY")
-    if not auth_key:
-        raise HTTPException(status_code=500, detail="AUTH_KEY not configured")
-    expected_header = f"Bearer {auth_key}"
-    if authorization != expected_header:
+def get_user_from_key(authorization: str) -> None:
+    if not authorization:
         raise HTTPException(status_code=401, detail="Unauthorized")
+
+    response = supabase_client.table("users").select("*").eq("key", authorization).execute()
+
+    return response.data[0]
+
 
 @app.get("/")
 async def say_hello():
@@ -58,68 +61,70 @@ class MessageList(BaseModel):
     human_say: str
 
 
-sessions = {}
-
-
-@app.get("/botname", response_model=None)
-async def get_bot_name(authorization: str = Header(...)):
-    load_dotenv()
-    get_auth_key(authorization)
-    sales_api = BlackSpaceAPI(
-        config_path=os.getenv("CONFIG_PATH"),
-        product_catalog=os.getenv(
-            "PRODUCT_CATALOG"
-        ),
-        verbose=True,
-        model_name=os.getenv("GPT_MODEL", "gpt-3.5-turbo-0613"),
-    )
-    name = sales_api.sales_agent.salesperson_name
-    return {"name": name, "model": sales_api.sales_agent.model_name}
-
-
-@app.post("/chat")
-async def chat_with_sales_agent(session_id: str = Body(...), human_say: str = Body(...), conversation_history: List[str] = Body(...), stream: bool = Query(False), authorization: str = Header(...), file: UploadFile = File(None)):
+@app.post("/chat/{chat_id}")
+async def chat_with_sales_agent(chat_id, session_id: str = Body(None), human_say: str = Body(...), stream: bool = Query(False), file: UploadFile = File(None)):
     sales_api = None
-    get_auth_key(authorization)
-    if session_id in sessions:
-        print("Session is found!")
-        sales_api = sessions[session_id]
-        print(f"Are tools activated: {sales_api.sales_agent.use_tools}")
-        print(f"Session id: {session_id}")
-    else:
-        print("Creating new session")
-        sales_api = BlackSpaceAPI(
-            config_path=os.getenv("CONFIG_PATH"),
+    user = get_user_from_key(chat_id)
+
+    if user is None:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    print(user["id"])
+
+    if session_id is None:
+      new_session_payload = {
+        "user_id": user["id"],
+        "created_at": datetime.now().isoformat(),
+        "updated_at": datetime.now().isoformat()
+        }
+      
+      new_session = supabase_client.table("sessions").insert(new_session_payload).execute()
+      session_id = new_session.data[0]["id"]
+
+    conversations = supabase_client.table("conversations").select("*").eq("session_id", session_id).execute()
+
+    conversations_history = []
+
+    for conversation in conversations.data:
+        conversations_history.append(conversation.text)
+
+    sales_api = BlackSpaceAPI(
+            config_path=user["config"],
             verbose=True,
-            product_catalog=os.getenv(
-                "PRODUCT_CATALOG"
-            ),
+            product_catalog=user["products"],
             model_name=os.getenv("GPT_MODEL", "gpt-3.5-turbo-0613"),
             use_tools=os.getenv("USE_TOOLS_IN_API", "True").lower()
             in ["true", "1", "t"],
+            conversation_history=conversations_history
         )
-        print(f"TOOLS?: {sales_api.sales_agent.use_tools}")
-        sessions[session_id] = sales_api
-    
+
     extracted_text = ""
 
-    if file is not None:
-        if not file.filename.endswith(".pdf"):
-            raise HTTPException(status_code=400, detail="Only PDF files are allowed")
-
+    if file and file.filename.endswith(".pdf"):
         file_content = await file.read()
-
         pdf_reader = PyPDF2.PdfFileReader(BytesIO(file_content))
-        num_pages = pdf_reader.numPages    
+        num_pages = pdf_reader.numPages
 
         for page_num in range(num_pages):
             page = pdf_reader.getPage(page_num)
             extracted_text += page.extractText()
 
-    if stream:
 
+    human_input = "User: " + human_say  + extracted_text + " <END_OF_TURN>"
+
+    new_user_conversation = {
+        "session_id": session_id,
+        "text": human_input,
+        "type": "human",
+        "created_at": datetime.now().isoformat(),
+        "updated_at": datetime.now().isoformat()
+    }
+
+    supabase_client.table("conversations").insert(new_user_conversation).execute()
+
+    if stream:
         async def stream_response():
-            stream_gen = sales_api.do_stream(conversation_history, human_say + extracted_text)
+            stream_gen = sales_api.do_stream(conversations.data, human_say + extracted_text)
             async for message in stream_gen:
                 data = {"token": message}
                 yield json.dumps(data).encode("utf-8") + b"\n"
@@ -127,8 +132,96 @@ async def chat_with_sales_agent(session_id: str = Body(...), human_say: str = Bo
         return StreamingResponse(stream_response())
     else:
         response = await sales_api.do(human_say + extracted_text)
+        response["session_id"] = session_id
         return response
 
+supabase_url = os.getenv("SUPABASE_URL")
+supabase_key = os.getenv("SUPABASE_KEY")
+
+supabase_client = create_client(supabase_url, supabase_key)
+
+class ConversationCreate(BaseModel):
+    session_id: int
+    text: str
+    type: str
+
+class UserCreate(BaseModel):
+    name: str
+    config: dict
+    products: str
+
+class SessionCreate(BaseModel):
+    user_id: int
+
+# Conversation API Endpoints
+@app.post("/conversations/", status_code=status.HTTP_201_CREATED)
+def create_conversation(conversation_data: ConversationCreate):
+    data = {
+        "session_id": conversation_data.session_id,
+        "text": conversation_data.text,
+        "type": conversation_data.type,
+        "created_at": datetime.now().isoformat(),
+        "updated_at": datetime.now().isoformat()
+    }
+    try:
+        response = supabase_client.table("conversations").insert(data).execute()
+        return response
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@app.get("/conversations/{session_id}/")
+def read_conversation(session_id: int):
+    try:
+        response = supabase_client.table("conversations").select("*").eq("session_id", session_id).execute()
+        return response
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+# User API Endpoints
+@app.post("/users/", status_code=status.HTTP_201_CREATED)
+def create_user(user_data: UserCreate):
+    data = {
+        "name": user_data.name,
+        "config": user_data.config,
+        "products": user_data.products,
+        "created_at": datetime.now().isoformat(),
+        "updated_at": datetime.now().isoformat()
+    }
+    try:
+        response = supabase_client.table("users").insert(data).execute()
+        return response
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@app.get("/users/{user_id}/")
+def read_user(user_id: int):
+    try:
+        response = supabase_client.table("users").select("*").eq("id", user_id).execute()
+        return response
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+# Session API Endpoints
+@app.post("/sessions/", status_code=status.HTTP_201_CREATED)
+def create_session(session_data: SessionCreate):
+    data = {
+        "user_id": session_data.user_id,
+        "created_at": datetime.now().isoformat(),
+        "updated_at": datetime.now().isoformat()
+    }
+    try:
+        response = supabase_client.table("sessions").insert(data).execute()
+        return response
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@app.get("/sessions/{session_id}/")
+def read_session(session_id: int):
+    try:
+        response = supabase_client.table("sessions").select("*").eq("id", session_id).execute()
+        return response
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 # Main entry point
 if __name__ == "__main__":
