@@ -2,12 +2,16 @@ import json
 import os
 from typing import List
 
+from io import BytesIO
+
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+
+import PyPDF2
 
 from server.api import BlackSpaceAPI
 
@@ -74,22 +78,7 @@ async def get_bot_name(authorization: str = Header(...)):
 
 
 @app.post("/chat")
-async def chat_with_sales_agent(req: MessageList, stream: bool = Query(False), authorization: str = Header(...)):
-    """
-    Handles chat interactions with the sales agent.
-
-    This endpoint receives a message from the user and returns the sales agent's response. It supports session management to maintain context across multiple interactions with the same user.
-
-    Args:
-        req (MessageList): A request object containing the session ID and the message from the human user.
-        stream (bool, optional): A flag to indicate if the response should be streamed. Currently, streaming is not implemented.
-
-    Returns:
-        If streaming is requested, it returns a StreamingResponse object (not yet implemented). Otherwise, it returns the sales agent's response to the user's message.
-
-    Note:
-        Streaming functionality is planned but not yet available. The current implementation only supports synchronous responses.
-    """
+async def chat_with_sales_agent(req: MessageList, stream: bool = Query(False), authorization: str = Header(...), file: UploadFile = File(...)):
     sales_api = None
     get_auth_key(authorization)
     # print(f"Received request: {req}")
@@ -113,17 +102,30 @@ async def chat_with_sales_agent(req: MessageList, stream: bool = Query(False), a
         print(f"TOOLS?: {sales_api.sales_agent.use_tools}")
         sessions[req.session_id] = sales_api
 
+    if not file.filename.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+
+    file_content = await file.read()
+
+    pdf_reader = PyPDF2.PdfFileReader(BytesIO(file_content))
+    num_pages = pdf_reader.numPages
+    extracted_text = ""
+
+    for page_num in range(num_pages):
+        page = pdf_reader.getPage(page_num)
+        extracted_text += page.extractText()
+
     if stream:
 
         async def stream_response():
-            stream_gen = sales_api.do_stream(req.conversation_history, req.human_say)
+            stream_gen = sales_api.do_stream(req.conversation_history, req.human_say + extracted_text)
             async for message in stream_gen:
                 data = {"token": message}
                 yield json.dumps(data).encode("utf-8") + b"\n"
 
         return StreamingResponse(stream_response())
     else:
-        response = await sales_api.do(req.human_say)
+        response = await sales_api.do(req.human_say + extracted_text)
         return response
 
 
