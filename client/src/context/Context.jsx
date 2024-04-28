@@ -1,5 +1,24 @@
 import { createContext, useState } from "react";
-import runChat from "../config/gemini";
+import axios from 'axios';
+
+async function runChat(prompt) {
+
+  var data = {
+    'human_say': prompt,
+    'session_id': '7',
+  };
+
+  const formBody = new FormData()
+
+  for (const key in data) {
+    formBody.append(key, data[key])
+  }
+  const result = await axios.post('https://blackspace-ai.onrender.com/chat/41fd0217-b449-417a-a123-27ab7bdd3a0c', formBody)
+  console.log(result);
+  const response = result?.data?.response;
+  console.log(response);
+  return response;
+}
 
 export const Context = createContext();
 
