@@ -68,11 +68,11 @@ const Main = () => {
             </div>
             <div className="cards">
               <div className="card">
-                <p>Ask any doubts or questions you have about our products.</p>
+                <p>Ask any doubts or questions you have about 100xEngineers & our courses.</p>
                 <img src={assets.compass_icon} alt="" />
               </div>
               <div className="card">
-                <p>Upload your documents and get free consulation from our AI bot.</p>
+                <p>Upload your resume and get free consulation from our AI councellor.</p>
                 <img src={assets.bulb_icon} alt="" />
               </div>
             </div>
