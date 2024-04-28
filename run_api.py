@@ -22,7 +22,7 @@ load_dotenv()
 
 # Access environment variables
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-CORS_ORIGINS = ["http://localhost:3000"]
+CORS_ORIGINS = ["http://localhost:3000", "https://blackspace-ai.vercel.app"]
 CORS_METHODS = ["GET", "POST"]
 
 # Initialize FastAPI app
