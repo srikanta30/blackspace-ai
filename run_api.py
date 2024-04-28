@@ -113,7 +113,6 @@ async def chat_with_sales_agent(req: MessageList, stream: bool = Query(False), a
         print(f"TOOLS?: {sales_api.sales_agent.use_tools}")
         sessions[req.session_id] = sales_api
 
-    # TODO stream not working
     if stream:
 
         async def stream_response():

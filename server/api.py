@@ -6,7 +6,6 @@ from langchain_community.chat_models import BedrockChat, ChatLiteLLM
 from langchain_openai import ChatOpenAI
 
 from server.agents import BlackSpaceAI
-from server.models import BedrockCustomModel
 
 
 class BlackSpaceAPI:
@@ -73,7 +72,6 @@ class BlackSpaceAPI:
 
         ai_log = await self.sales_agent.astep(stream=False)
         await self.sales_agent.adetermine_conversation_stage()
-        # TODO - handle end of conversation in the API - send a special token to the client?
         if self.verbose:
             print("=" * 10)
             print(f"AI LOG {ai_log}")
@@ -93,7 +91,6 @@ class BlackSpaceAPI:
             if self.sales_agent.conversation_history
             else ""
         )
-        #print("AI LOG INTERMEDIATE STEPS: ", ai_log["intermediate_steps"])
 
         if (
             self.use_tools and 
@@ -143,7 +140,6 @@ class BlackSpaceAPI:
         return payload
 
     async def do_stream(self, conversation_history: [str], human_input=None):
-        # TODO
         current_turns = len(conversation_history) + 1
         if current_turns >= self.max_num_turns:
             print("Maximum number of turns reached - ending the conversation.")
