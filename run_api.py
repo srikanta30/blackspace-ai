@@ -100,6 +100,8 @@ async def chat_with_sales_agent(session_id: str = Body(...), human_say: str = Bo
         )
         print(f"TOOLS?: {sales_api.sales_agent.use_tools}")
         sessions[session_id] = sales_api
+    
+    extracted_text = ""
 
     if file is not None:
         if not file.filename.endswith(".pdf"):
@@ -108,12 +110,11 @@ async def chat_with_sales_agent(session_id: str = Body(...), human_say: str = Bo
         file_content = await file.read()
 
         pdf_reader = PyPDF2.PdfFileReader(BytesIO(file_content))
-        num_pages = pdf_reader.numPages
-    extracted_text = ""
+        num_pages = pdf_reader.numPages    
 
-    for page_num in range(num_pages):
-        page = pdf_reader.getPage(page_num)
-        extracted_text += page.extractText()
+        for page_num in range(num_pages):
+            page = pdf_reader.getPage(page_num)
+            extracted_text += page.extractText()
 
     if stream:
 
