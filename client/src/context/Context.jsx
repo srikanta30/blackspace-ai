@@ -1,6 +1,16 @@
 import { createContext, useState } from "react";
 import axios from 'axios';
 
+function textToAudio(msg) {
+  let speech = new SpeechSynthesisUtterance();
+  speech.lang = "en-US";
+  speech.text = msg;
+  speech.volume = 1;
+  speech.rate = 1;
+  speech.pitch = 1;
+  window.speechSynthesis.speak(speech);
+}
+
 async function runChat(prompt) {
 
   var data = {
@@ -16,7 +26,7 @@ async function runChat(prompt) {
   const result = await axios.post('https://blackspace-ai.onrender.com/chat/41fd0217-b449-417a-a123-27ab7bdd3a0c', formBody)
   console.log(result);
   const response = result?.data?.response;
-  console.log(response);
+  textToAudio(response);
   return response;
 }
 
