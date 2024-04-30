@@ -104,7 +104,8 @@ const Main = () => {
               onChange={(e) => setInput(e.target.value)}
               value={input}
               type="text"
-              placeholder="Enter a promt here"
+              placeholder="Ask your questions here..."
+              onKeyDown={(e) => e.key === "Enter" && onSent()}
             />
             <div>
               <img src={assets.gallery_icon} alt="" />
