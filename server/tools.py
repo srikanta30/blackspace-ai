@@ -1,9 +1,12 @@
+__import__('pysqlite3')
+import sys
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+
 from langchain.agents import Tool
 from langchain.chains import RetrievalQA
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-
 
 def setup_knowledge_base(
     product_catalog: str = None, model_name: str = "gpt-3.5-turbo"
@@ -28,13 +31,13 @@ def setup_knowledge_base(
     return knowledge_base
 
 def get_tools(product_catalog):
-    # knowledge_base = setup_knowledge_base(product_catalog)
+    knowledge_base = setup_knowledge_base(product_catalog)
     tools = [
-        # Tool(
-        #     name="ProductSearch",
-        #     func=knowledge_base.run,
-        #     description="useful for when you need to answer questions about product information or services offered, availability and their costs.",
-        # ),
+        Tool(
+            name="ProductSearch",
+            func=knowledge_base.run,
+            description="useful for when you need to answer questions about product information or services offered, availability and their costs.",
+        ),
     ]
 
     return tools

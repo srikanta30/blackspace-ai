@@ -46,6 +46,7 @@ class BlackSpaceAPI:
 
         print(f"BlackSpaceAI use_tools: {sales_agent.use_tools}")
         sales_agent.seed_agent()
+        sales_agent.conversation_history = self.conversation_history
         return sales_agent
 
     async def do(self, human_input=None):

@@ -120,7 +120,7 @@ const Main = () => {
           </div>
           <p className="bottom-info">
             blackspace.ai may display inaccurate info, including about people, so
-            double-check its responses.Your privacy and blackspace.aiVishal apps
+            double-check its responses.Your privacy and blackspace.ai
           </p>
         </div>
       </div>
