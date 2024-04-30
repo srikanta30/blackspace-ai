@@ -77,10 +77,10 @@ class BlackSpaceAI(Chain):
         return []
 
     @time_logger
-    def seed_agent(self):
+    def seed_agent(self, conversation_history):
 
         self.current_conversation_stage = self.retrieve_conversation_stage("1")
-        self.conversation_history = []
+        self.conversation_history = conversation_history
 
     @time_logger
     def determine_conversation_stage(self):
@@ -374,7 +374,7 @@ class BlackSpaceAI(Chain):
             sales_agent_with_tools = LLMSingleActionAgent(
                 llm_chain=llm_chain,
                 output_parser=output_parser,
-                stop=["\nObservation:"],
+                stop=[],
                 allowed_tools=tool_names,
             )
 

@@ -45,8 +45,7 @@ class BlackSpaceAPI:
         sales_agent = BlackSpaceAI.from_llm(self.llm, **config)
 
         print(f"BlackSpaceAI use_tools: {sales_agent.use_tools}")
-        sales_agent.seed_agent()
-        sales_agent.conversation_history = self.conversation_history
+        sales_agent.seed_agent(self.conversation_history)
         return sales_agent
 
     async def do(self, human_input=None):
@@ -127,8 +126,7 @@ class BlackSpaceAPI:
 
     async def do_stream(self, conversation_history: [str], human_input=None):
 
-        self.sales_agent.seed_agent()
-        self.sales_agent.conversation_history = conversation_history
+        self.sales_agent.seed_agent(conversation_history)
 
         if human_input is not None:
             self.sales_agent.human_step(human_input)
