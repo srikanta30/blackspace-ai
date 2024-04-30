@@ -5,6 +5,7 @@ from langchain.agents import (
     AgentExecutor,
     LLMSingleActionAgent,
     create_openai_tools_agent,
+    create_tool_calling_agent
 )
 from langchain.chains import LLMChain, RetrievalQA
 from langchain.chains.base import Chain
@@ -371,19 +372,22 @@ class BlackSpaceAI(Chain):
             output_parser = SalesConvoOutputParser(
                 ai_prefix=kwargs.get("salesperson_name", ""), verbose=verbose
             )
-            sales_agent_with_tools = LLMSingleActionAgent(
-                llm_chain=llm_chain,
-                output_parser=output_parser,
-                stop=[],
-                allowed_tools=tool_names,
-            )
+            # sales_agent_with_tools = LLMSingleActionAgent(
+            #     llm_chain=llm_chain,
+            #     output_parser=output_parser,
+            #     stop=["\nObservation:"],
+            #     allowed_tools=tool_names,
+            # )
 
-            sales_agent_executor = CustomAgentExecutor.from_agent_and_tools(
-                agent=sales_agent_with_tools,
-                tools=tools,
-                verbose=verbose,
-                return_intermediate_steps=True,
-            )
+            # sales_agent_executor = CustomAgentExecutor.from_agent_and_tools(
+            #     agent=sales_agent_with_tools,
+            #     tools=tools,
+            #     verbose=verbose,
+            #     return_intermediate_steps=True,
+            # )
+
+            agent = create_tool_calling_agent(llm, tools, prompt)
+            sales_agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
 
         return cls(
             stage_analyzer_chain=stage_analyzer_chain,
