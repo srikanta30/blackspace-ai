@@ -28,13 +28,13 @@ def setup_knowledge_base(
     return knowledge_base
 
 def get_tools(product_catalog):
-    knowledge_base = setup_knowledge_base(product_catalog)
+    # knowledge_base = setup_knowledge_base(product_catalog)
     tools = [
-        Tool(
-            name="ProductSearch",
-            func=knowledge_base.run,
-            description="useful for when you need to answer questions about product information or services offered, availability and their costs.",
-        ),
+        # Tool(
+        #     name="ProductSearch",
+        #     func=knowledge_base.run,
+        #     description="useful for when you need to answer questions about product information or services offered, availability and their costs.",
+        # ),
     ]
 
     return tools
